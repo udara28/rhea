@@ -42,13 +42,13 @@ class _fpga(object):
         self._extintfs = {}
 
         # walk through the default settings
-        for k,v in self.default_clocks.iteritems():
+        for k,v in self.default_clocks.items():
             self.add_clock(k, **v)
-        for k,v in self.default_resets.iteritems():
+        for k,v in self.default_resets.items():
             self.add_reset(k, **v)
-        for k,v in self.default_ports.iteritems():
+        for k,v in self.default_ports.items():
             self.add_port(k, **v)
-        for k,v in self.default_extintf.iteritems():
+        for k,v in self.default_extintf.items():
             self.add_extintf(k, v)
 
 
@@ -129,7 +129,7 @@ class _fpga(object):
         for v in pins:
             assert isinstance(v, (str, int))
         # @todo: raise an error vs. 
-        assert not self._ports.has_key(name)
+        assert name not in self._ports
         self._ports[name] = Port(name, pins, **pattr)
 
 
@@ -212,24 +212,24 @@ class _fpga(object):
         for pn in pp.args[:pl]:
             hdlports[pn] = None
         params = {}
-        for ii,kw in enumerate(pp.args[pl:]):
+        for ii, kw in enumerate(pp.args[pl:]):
             params[kw] = pp.defaults[ii]
 
 
         # see if any of the ports or parameters have been overridden
         if self.top_params is not None:
-            for k,v in self.top_params.iteritems():
-                if hdlports.has_key(k):
+            for k, v in self.top_params.items():
+                if k in hdlports:
                     hdlports[k] = v
-            for k,v in self.top_params.iteritems():
-                if params.has_key(k):
+            for k, v in self.top_params.items():
+                if k in params:
                     params[k] = v
 
-        for k,v in kwargs.items():
-            if hdlports.has_key(k):
+        for k, v in kwargs.items():
+            if k in hdlports:
                 hdlports[k] = v
-        for k,v in kwargs.items():
-            if params.has_key(k):
+        for k, v in kwargs.items():
+            if k in params:
                 params[k] = v
 
         # @todo: log this information, some parameters can be too large
@@ -242,7 +242,7 @@ class _fpga(object):
         # @todo: this matching code needs to be enhanced, this should
         #    always match a top-level port to a port def.
         for port_name,port in self._ports.items():
-            if hdlports.has_key(port_name):
+            if port_name in hdlports:
                 hdlports[port_name] = port.sig
                 port.inuse = True
 
