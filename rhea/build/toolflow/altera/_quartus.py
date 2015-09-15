@@ -11,7 +11,6 @@ import os
 from time import gmtime, strftime
 import subprocess
 import shlex
-from pprint import pprint
 
 from .._toolflow import _toolflow
 from .._convert import convert
@@ -29,16 +28,17 @@ _default_pin_attr = {
 
 class Quartus(_toolflow):
     _name = "Altera Quartus"
+
     def __init__(self, brd, top=None, path='./altera/'):
         """
-        Given a board definition and a top-level module 
+        Given a board definition and a top-level module
         create an instance of the Quartus toolchain.
         """
-        _toolflow.__init__(self, brd, top=top, path=path)
+        super(Quartus, self).__init__(brd=brd, top=top, path=path)
         self.sdc_file = ''
         self._core_file_list = set()
         self._default_project_file = None
-        
+
     def add_cores(self, filename):
         self._core_file_list.update(set(filename))
 
@@ -58,8 +58,8 @@ class Quartus(_toolflow):
             qsf += "set_global_assignment -name %s %s\n" % (type_file[use], f,)
         qsf += "set_global_assignment -name FAMILY \"%s\"\n" % (self.brd.family,)
         qsf += "set_global_assignment -name DEVICE %s\n" % (self.brd.device,)
-        # there is an issue here that needs to be resolved, with a version or 
-        # platform dependent the myhdl converters will rename the module to 
+        # there is an issue here that needs to be resolved, with a version or
+        # platform dependent the myhdl converters will rename the module to
         # the name specified with toV*.name and on another version/platform
         # it does not (self.brd.top.func_name,)
         qsf += "set_global_assignment -name TOP_LEVEL_ENTITY %s\n" % (self.name,)
@@ -94,7 +94,7 @@ class Quartus(_toolflow):
         # @todo: log setup information
         #print(qsf)
         return
-        
+
     def create_constraints(self):
         self.sdc_file = os.path.join(self.path, self.name+'.sdc')
         sdc  = '# -------------------------------------------------------------------------- #\n'
@@ -120,7 +120,7 @@ class Quartus(_toolflow):
         f.close()
         # @todo: log setup information
         #print(sdc)
-        return                    
+        return
 
     def create_flow_script(self):
         fn = os.path.join(self.path, self.name+'.tcl')
@@ -145,20 +145,20 @@ class Quartus(_toolflow):
         tcl += "execute_flow -compile\n"
         #tcl += "execute_flow -early_timing_estimate\n"
         tcl += "project_close\n"
-        
+
         fid = open(fn, 'w')
         fid.write(tcl)
-        fid.close() 
+        fid.close()
 
         return tcl_script
-        
+
     def run(self, use='verilog', name=None):
         """ Execute the tool-flow """
 
         self.pathexist(self.path)
 
         # convert the top-level
-        cfiles = convert(self.brd, name=self.name, 
+        cfiles = convert(self.brd, name=self.name,
                          use=use, path=self.path)
         self.add_files(cfiles)
 
@@ -168,8 +168,7 @@ class Quartus(_toolflow):
         tcl_name = self.create_flow_script()
 
         cmd = ['quartus_sh', '-t', tcl_name, '-project', self.name]
-        self.logfn = 'build_quartus.log'
-        self._execute_flow(cmd)
+        self.logfn = self._execute_flow(cmd, "build_quartus.log")
 
         return self.logfn
 
@@ -186,10 +185,9 @@ class Quartus(_toolflow):
         for cmd in self.brd.program_device_cli:
             ucmd = cmd.substitute(dict(bitfile=bitfile))
             ucmd = shlex.split(ucmd)
-            self.logfn = 'program_quartus.log'
-            self._execute_flow(ucmd)
+            self._execute_flow(ucmd, "program_quartus.log")
         return
-        
+
     def get_utilization(self):
         fitlog = os.path.join(self.path, self.name+'.fit.rpt')
         info = get_utilization(fitlog)

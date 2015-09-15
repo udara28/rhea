@@ -28,6 +28,7 @@ _default_pin_attr = {
 
 class ISE(_toolflow):
     _name = "Xilinx ISE"
+
     def __init__(self, brd, top=None, path='./xilinx/'):
         """
         Given a top-level module (function) and a board definition
@@ -36,8 +37,7 @@ class ISE(_toolflow):
         _toolflow.__init__(self, brd, top=top, path=path)
         #self.reports = _ise_parse_reports(self)
         self.ucf_file = ''
-    
-        
+
     def create_constraints(self):
         self.ucf_file = os.path.join(self.path, self.name+'.ucf')
         ustr = ""
@@ -196,8 +196,7 @@ class ISE(_toolflow):
         tcl_name = self.create_flow_script()
 
         cmd = ['xtclsh', tcl_name]
-        self.logfn = 'build_ise.log'
-        self._execute_flow(cmd)
+        self.logfn = self._execute_flow(cmd, "build_ise.log")
 
         return self.logfn
 
