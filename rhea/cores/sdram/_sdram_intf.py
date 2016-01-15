@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-from math import ceil, floor
+from math import ceil, floor, log
 
 from myhdl import Signal, TristateSignal, intbv, enum
 
@@ -169,6 +169,15 @@ class SDRAMInterface(object):
         if self.dq is not None and self.dqo is None:
             self.rdq.next = self.dq
 
+    def _load_mode(self, addr):
+        self.addr.next = addr
+        # [LOAD_MODE] cs ras cas we dqm : L L L L X
+        self.cs.next = False
+        self.ras.next = False
+        self.cas.next = False
+        self.we.next = False
+        yield self.clk.posedge
+
     def write(self, val, row_addr, col_addr, bankid=0, burst=1):
         """ Controller side write
         This is a transaction generator, this generator is used to
@@ -210,3 +219,28 @@ class SDRAMInterface(object):
 
     def get_read_data(self):
         return self.read_data
+
+    def load_mode(self, mode='burst', cas=3, burst=1):
+        addr = 0
+        if mode.lower() == 'single':
+            addr += 2**9
+        addr += cas*(2**4)
+        addr += int(log(burst, 2))
+        self.cke.next = True
+        yield self._nop()
+        yield self._load_mode(addr)
+        yield self._nop()
+        self.cke.next = False
+
+    def precharge(self, bank_id=None):
+        if not bank_id:             # precharge all banks
+            self.addr.next = 2**10  # A10 is high
+        else:
+            self.addr.next = 0
+            self.bs.next = bank_id
+        # [PRECHARGE] cs ras cas we : L L H L
+        self.cs.next = False
+        self.ras.next = False
+        self.cas.next = True
+        self.we.next = False
+        yield self.clk.posedge
